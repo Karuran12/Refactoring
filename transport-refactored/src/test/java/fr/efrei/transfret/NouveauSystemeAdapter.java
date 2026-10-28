@@ -27,20 +27,24 @@ import java.util.stream.Collectors;
  */
 public class NouveauSystemeAdapter implements SystemeTransport {
 
+    private ClientRepository clients;
+    private ExpeditionRepository expeditions;
+    private EmailService email;
+    private SmsService sms;
     private ServiceClient serviceClient;
     private ServiceExpedition serviceExpedition;
 
     @Override
     public void reinitialiser() {
-        Database.getInstance();
-        Database.expeditions.clear();
-        Database.clients.clear();
-        EmailService.journal.clear();
-        SmsService.journal.clear();
-        ServiceExpedition.compteur = 0;
-        Flotte.initialiser();
-        serviceClient = new ServiceClient();
-        serviceExpedition = new ServiceExpedition();
+        // réinitialiser = construire un nouveau graphe d'objets
+        clients = new ClientRepositoryMemoire();
+        expeditions = new ExpeditionRepositoryMemoire();
+        email = new EmailService();
+        sms = new SmsService();
+        Notificateur notificateur = new Notificateur(email, sms);
+        serviceClient = new ServiceClient(clients, new ValidateurClient(), notificateur);
+        serviceExpedition = new ServiceExpedition(expeditions, new CalculateurPrix(),
+                new AffectationVehicule(new Flotte()), new EstimateurDelai(), new ValidateurExpedition(), notificateur);
     }
 
     @Override
@@ -51,7 +55,7 @@ public class NouveauSystemeAdapter implements SystemeTransport {
 
     @Override
     public Optional<String> creerExpedition(DemandeExpedition d) {
-        Client client = Database.clients.get(d.refClient());
+        Client client = clients.trouver(d.refClient());
         Expedition expedition = serviceExpedition.creerExpedition(client, versColis(d.colis()), d.villeDepart(),
                 d.villeArrivee(), ModeTransport.valueOf(d.mode().name()), d.urgent(), d.assurance());
         return Optional.ofNullable(expedition).map(Expedition::getId);
@@ -59,7 +63,7 @@ public class NouveauSystemeAdapter implements SystemeTransport {
 
     @Override
     public Optional<EtatExpedition> consulter(String id) {
-        Expedition e = Database.expeditions.get(id);
+        Expedition e = expeditions.trouver(id);
         if (e == null) {
             return Optional.empty();
         }
@@ -92,17 +96,17 @@ public class NouveauSystemeAdapter implements SystemeTransport {
 
     @Override
     public Optional<String> facture(String id) {
-        return Optional.ofNullable(Database.expeditions.get(id)).map(e -> new GenerateurFacture().generer(e));
+        return Optional.ofNullable(expeditions.trouver(id)).map(e -> new GenerateurFacture().generer(e));
     }
 
     @Override
     public List<Notification> notifications() {
         List<Notification> notifications = new ArrayList<>();
-        for (String[] email : EmailService.journal) {
-            notifications.add(new Notification(Canal.EMAIL, email[0], email[1]));
+        for (String[] mail : email.getJournal()) {
+            notifications.add(new Notification(Canal.EMAIL, mail[0], mail[1]));
         }
-        for (String[] sms : SmsService.journal) {
-            notifications.add(new Notification(Canal.SMS, sms[0], sms[1]));
+        for (String[] texto : sms.getJournal()) {
+            notifications.add(new Notification(Canal.SMS, texto[0], texto[1]));
         }
         return notifications;
     }
