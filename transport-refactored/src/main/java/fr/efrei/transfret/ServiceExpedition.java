@@ -9,11 +9,6 @@ public class ServiceExpedition {
     private static final double TAUX_TVA = 1.2;
     private static final double TAUX_FRAIS_ANNULATION = 0.5;
 
-    private static final double KM_PAR_MILLE = 1.852;
-    private static final int ROULAGE_PISTE_KM = 2;
-    private static final int ALTITUDE_CROISIERE = 35000;
-    private static final double TEMPERATURE_FROID = 4.0;
-
     private static final int ID_MINIMUM = 1000;
     private static final int ID_PLAGE = 9000;
 
@@ -104,24 +99,7 @@ public class ServiceExpedition {
         e.setStatut(StatutExpedition.EN_COURS);
         Vehicule v = e.getVehicule();
         v.setDisponible(false);
-        try {
-            v.faireLePlein();
-        } catch (Exception ex) {
-        }
-        if (e.getMode() == ModeTransport.ROUTE || e.getMode() == ModeTransport.RAIL) {
-            v.rouler(e.getDistance());
-        } else if (e.getMode() == ModeTransport.MER) {
-            v.naviguer((int) (e.getDistance() / KM_PAR_MILLE));
-        } else if (e.getMode() == ModeTransport.AIR) {
-            v.rouler(ROULAGE_PISTE_KM);
-            v.voler(ALTITUDE_CROISIERE);
-        }
-        for (Colis c : e.getColis()) {
-            if (c.getType() == TypeMarchandise.REFRIGERE) {
-                v.activerRefrigeration(TEMPERATURE_FROID);
-                break;
-            }
-        }
+        v.partir(e.getDistance());
         expeditions.sauvegarder(e);
         notificateur.notifier(e.getClient(), "Votre expédition " + e.getId() + " est en route",
                 "Votre expédition a quitté " + e.getVilleDepart() + ".",
