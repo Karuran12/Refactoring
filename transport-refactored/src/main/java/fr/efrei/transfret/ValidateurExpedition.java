@@ -24,16 +24,16 @@ public class ValidateurExpedition {
             if (c.getType() == TypeMarchandise.DANGEREUX) dangereux = true;
             if (c.getType() == TypeMarchandise.REFRIGERE) refrigere = true;
         }
-        if (dangereux && mode == ModeTransport.AIR) {
-            System.out.println("ERREUR : les matières dangereuses sont interdites en transport aérien");
+        if (dangereux && !mode.accepteDangereux()) {
+            System.out.println("ERREUR : les matières dangereuses sont interdites en transport " + mode);
             return false;
         }
-        if (refrigere && !(mode == ModeTransport.ROUTE || mode == ModeTransport.MER)) {
-            System.out.println("ERREUR : le transport réfrigéré n'est possible que par route ou par mer");
+        if (refrigere && !mode.accepteRefrigere()) {
+            System.out.println("ERREUR : le transport réfrigéré est impossible en transport " + mode);
             return false;
         }
-        if (urgent && mode == ModeTransport.MER) {
-            System.out.println("ERREUR : pas d'option urgente pour le transport maritime");
+        if (urgent && !mode.accepteUrgence()) {
+            System.out.println("ERREUR : pas d'option urgente en transport " + mode);
             return false;
         }
         return true;

@@ -13,6 +13,7 @@ public class CalculateurPrix {
         prix = new SupplementFragile(prix);
         prix = new SupplementDangereux(prix);
         prix = new SupplementRefrigere(prix);
+        prix = new SupplementHorsGabarit(prix); 
         prix = new SupplementUrgence(prix);
         prix = new RemiseClient(prix);
         prix = new Assurance(prix);
